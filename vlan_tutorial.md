@@ -10,6 +10,14 @@ We will create the following network to demonstrate the following:
 * Trunk link 
 * ACL for a particular VLAN. 
 
+We will use the following network setup:
+Single switch br0 connected to. 
+Native vlan100: host1 (192.168.0.1/24), host2 (192.168.0.2/24). 
+Tagged vlan100: host3 (veth0.100: 192.168.0.3/24), host4 (veth0.100: 192.168.0.4/24). 
+Native vlan200: host5 (192.168.2.5/24), host6 (192.168.2.6/24). 
+Tagged vlan300: host7 (veth0.300: 192.168.3.7/24), host8 (veth0.300: 192.168.3.8/24). 
+Tagged vlan100, vlan200, vlan300: host9 (veth0.100: 192.168.0.9/24,veth0.200: 192.168.2.9/24, veth0.300: 192.168.3.9/24).
+
 *Note:* 
 Keep a pice of paper with the network layout and the hosts name, vlans, ip to simplify following the rest of the tutorial. 
 
