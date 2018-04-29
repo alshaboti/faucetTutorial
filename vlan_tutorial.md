@@ -1,7 +1,7 @@
 Continues on from https://faucet.readthedocs.io/en/latest/tutorials.html
 Next we are going to introduce VLANs.
 
-ETA: ~25 mins.
+ETA: ~20 mins.
 
 We will create the following network to demonstrate the following: 
 * Connection within the same native VLAN.
@@ -11,8 +11,10 @@ We will create the following network to demonstrate the following:
 * ACL for a particular VLAN. 
 
 *Note:* 
-Hosts that are connected to the tagged vlan port require a vlan interface. Use the following script to do that.  
+Keep a pice of paper with the network layout and the hosts name, vlans, ip to simplify following the rest of the tutorial. 
 
+
+Hosts that are connected to the tagged vlan port require a vlan interface. Use the following script to do that.  
 ```
 create_tagged_dev_ns () {
      NETNS=$1
@@ -158,5 +160,82 @@ as_ns host7 ping 192.168.3.9
 ```
 All these traffic should go through to the host9 as it is connected through trunk link. 
 
+## Routing between vlans
+Let's try to make a route between hosts in vlan100 and vlan200. 
+To do that, add a router and change vlans section in the /etc/faucet/faucet.yaml to be like.
+```
+vlans:
+    vlan100:
+        vid: 100
+        faucet_vips: ["192.168.0.254/24"]
+    vlan200:
+        vid: 200
+        faucet_vips: ["192.168.2.254/24"]
+    vlan300:
+        vid: 300
 
+routers:
+    router-1:
+        vlans: [vlan100, vlan200] 
+        
+```
+Restart faucet to upload the configuration
+```
+sudo systemctl restart faucet
+```
+Configure vlan100 (native, tagged), vlan200 hosts gateway to be faucet IP as shown in the faucet.yaml file.
+```
+as_ns host1 route add default gw 192.168.0.254 veth0
+as_ns host2 route add default gw 192.168.0.254 veth0
 
+as_ns host3 route add default gw 192.168.0.254 veth0.100
+as_ns host4 route add default gw 192.168.0.254 veth0.100
+
+as_ns host5 route add default gw 192.168.2.254 veth0
+as_ns host6 route add default gw 192.168.2.254 veth0
+```
+Then make some traffic between vlan100 and vlan200. 
+```
+as_ns host1 ping 192.168.2.5
+as_ns host3 ping 192.168.2.6
+```
+
+## Vlan ACL
+Let's apply ACL on a particular vlan (e.g. vlan300). We will block any ICMP packets on Vlan300. 
+First create an ACL to block the ping. 
+Open /etc/faucet/faucet.yaml and add acls.
+```
+acls:
+    block-ping:
+        - rule:
+            dl_type: 0x800      # IPv4
+            ip_proto: 1         # ICMP
+            actions:
+                allow: False
+        - rule:
+            dl_type: 0x86dd     # IPv6
+            ip_proto: 58        # ICMPv6
+            actions:
+                allow: False
+```
+Then apply this on the vlan300. 
+```
+vlans:
+    vlan100:
+        vid: 100
+        faucet_vips: ["192.168.0.254/24"]
+    vlan200:
+        vid: 200
+        faucet_vips: ["192.168.2.254/24"]
+    vlan300:
+        vid: 300
+        acls_in: [block-ping] # Acl apply only on vlan300
+```
+Restart faucet to upload the new configuration 
+```
+sudo systemctl restart faucet
+```
+Now if you try to ping from host7 and host8, it will not work as it is specified by their vlan acl. 
+```
+as_ns host7 ping 192.168.3.8
+```
