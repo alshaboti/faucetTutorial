@@ -4,12 +4,13 @@ Next we are going to introduce VLANs.
 ETA: ~25 mins.
 
 We will create the following network to demonstrate the following: 
-Connection within the same native VLAN.
-Connection between native and tagged VLAN. 
-Routing between different VLANs.
-Trunk link 
-ACL for a particular VLAN. 
-Note: 
+* Connection within the same native VLAN.
+* Connection between native and tagged VLAN. 
+* Routing between different VLANs.
+* Trunk link 
+* ACL for a particular VLAN. 
+
+*Note:* 
 Hosts that are connected to the tagged vlan port require a vlan interface. Use the following script to do that.  
 
 ```
@@ -31,28 +32,99 @@ clear_ns(){
    sudo ovs-vsctl  del-port br0 veth-${NETNS}
 }
 ```
+### Network setup
+Let’s start. Keep host1, host2 on the native vlan 100 (office vlan) as in the first tutorial. 
+Then add the following hosts with the corresponding vlan:
+* In tagged vlan 100 add host3 and host4, and create a vlan interface on each of them. 
+* In native vlan 200 add host5 and host6 (no need to add any vlan interface for hosts connected to native vlan).
+* In tagged vlan 300 add host7 and host8,  and create a vlan interface on each of them. 
+* Add host9 to all previous vlans to work as NFV host . 
+Let's start..
 
-Let’s start. Keep host1, host2 on the native vlan 100 (office vlan) as in the first tutorial, and add the following hosts:
-For tagged vlan 100, create host3 and host4 and then create a vlan interface on each of them. 
+Tagged vlan 100
 ```
 create_ns  host3 0
 create_ns  host4 0
 create_tagged_dev_ns host3 192.168.0.3/24 100
 create_tagged_dev_ns host4 192.168.0.4/24 100
 ```
-For native vlan 200, we will create host5 and host6.
+Native vlan 200
 ```
 create_ns  host5 192.168.2.5/24
 create_ns  host6 192.168.2.6/24
 ```
-For tagged Vlan 300, create host7 and host8 and then create a vlan interface on each of them. 
+Tagged vlan 300
 ```
 create_ns  host7 0
 create_ns  host8 0
 create_tagged_dev_ns host7 192.168.3.7/24 300
 create_tagged_dev_ns  host8 192.168.3.8/24 300
 ```
-Then  connect the new hosts to the switch (br0)
+Trunk link for host9
 ```
-sudo ovs-vsctl add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 -- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4 -- add-port br0 veth-host5 -- set interface veth-host5 ofport_request=5   -- add-port br0 veth-host6 -- set interface veth-host6 ofport_request=6   -- add-port br0 veth-host7 -- set interface veth-host7 ofport_request=7  -- add-port br0 veth-host8 -- set interface veth-host8 ofport_request=8   
+create_ns  host9 0
+create_tagged_dev_ns host9 192.168.0.9/24 100
+create_tagged_dev_ns host9 192.168.2.9/24 200
+create_tagged_dev_ns host9 192.168.3.9/24 300
 ```
+
+Then  connect all the hosts to the switch (br0)
+```
+sudo ovs-vsctl add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 -- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4 -- add-port br0 veth-host5 -- set interface veth-host5 ofport_request=5   -- add-port br0 veth-host6 -- set interface veth-host6 ofport_request=6   -- add-port br0 veth-host7 -- set interface veth-host7 ofport_request=7  -- add-port br0 veth-host8 -- set interface veth-host8 ofport_request=8 -- add-port br0 veth-host9 -- set interface veth-host9 ofport_request=9   
+```
+Now we have everything to start working with faucet through its configuration file. 
+Each time we need only to change the configuration file and restart faucet (or send it HUP signal to relaod the configuration file). 
+
+## Basic vlan settings
+Change /etc/faucet/faucet.yaml to reflect our setting. 
+```
+vlans:
+    vlan100:
+        vid: 100
+    vlan200:
+        vid: 200
+    vlan300:
+        vid: 300
+dps:
+    sw1:
+        dp_id: 0x1
+        hardware: "Open vSwitch"
+        interfaces:
+            1:
+                name: "host1"
+                description: "host2 network namespace"
+                native_vlan: vlan100
+            2:
+                name: "host2"
+                description: "host2 network namespace"
+                native_vlan: vlan100
+            3:
+                name: "host3"
+                tagged_vlans: [vlan100]
+            4:
+                name: "host4"
+                tagged_vlans: [vlan100]
+            5:
+                name: "host5"
+                native_vlan: vlan200
+            6:
+                name: "host6"
+                native_vlan: vlan200
+            7:
+                name: "host7"
+                tagged_vlans: [vlan300]
+            8:
+                name: "host8"
+                tagged_vlans: [vlan300]
+            9:
+                name: "host9"
+                tagged_vlans: [vlan100,vlan200,vlan300]                
+```
+Then restart faucet, and check how its log the new configuration in /var/log/faucet/faucet.log 
+```
+sudo systemctl restart faucet
+cat /var/log/faucet/faucet.log
+```
+
+
+
