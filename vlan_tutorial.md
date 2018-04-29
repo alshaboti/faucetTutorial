@@ -1,7 +1,7 @@
 Continues on from https://faucet.readthedocs.io/en/latest/tutorials.html
 Next we are going to introduce VLANs.
 
-ETA: ~20 mins.
+ETA: ~30 mins.
 
 We will create the following network to demonstrate the following: 
 * Connection within the same native VLAN.
