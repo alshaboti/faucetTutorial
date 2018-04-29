@@ -125,6 +125,38 @@ Then restart faucet, and check how its log the new configuration in /var/log/fau
 sudo systemctl restart faucet
 cat /var/log/faucet/faucet.log
 ```
+Let's do the following simple tests:
+1. ping between hosts in the same vlan
+```
+as_ns host1 ping 192.168.0.2
+as_ns host3 ping 192.168.0.4
+as_ns host5 ping 192.168.2.6
+as_ns host7 ping 192.168.3.8
+```
+All should work.
+2. ping between hosts in same mixed vlan (i.e. native and tagged). In particular between host1 (native vlan100) to host3 (tagged vlan100).
+```
+as_ns host1 ping 192.168.0.3
+```
+3. ping between hosts in different vlans.
+let's change host5 (native vlan200) ip to be 192.168.0.5 and try to ping it from host1 (native vlan100). 
+```
+as_ns host5 ifconfig veth0 192.168.0.5
+as_ns host1 ping 192.168.0.5
+```
+It will not ping as they are in different vlans. 
+Let's set host5 ip back. 
+```
+as_ns host5 ifconfig veth0 192.168.2.5
+```
+4. Test the trunk link to host9 from different vlans
+```
+as_ns host1 ping 192.168.0.9
+as_ns host3 ping 192.168.0.9
+as_ns host5 ping 192.168.2.9
+as_ns host7 ping 192.168.3.9
+```
+All these traffic should go through to the host9 as it is connected through trunk link. 
 
 
 
