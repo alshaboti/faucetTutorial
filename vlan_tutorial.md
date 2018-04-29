@@ -24,7 +24,7 @@ Keep a pice of paper with the network layout and the hosts name, vlans, ip to si
 
 Hosts that are connected to the tagged vlan port require a vlan interface. Use the following script to do that.  
 ```
-create_tagged_dev_ns () {
+add_tagged_dev_ns () {
      NETNS=$1
      IP=$2
      VLAN=$3
@@ -55,8 +55,8 @@ Tagged vlan 100
 ```
 create_ns  host3 0
 create_ns  host4 0
-create_tagged_dev_ns host3 192.168.0.3/24 100
-create_tagged_dev_ns host4 192.168.0.4/24 100
+add_tagged_dev_ns host3 192.168.0.3/24 100
+add_tagged_dev_ns host4 192.168.0.4/24 100
 ```
 Native vlan 200
 ```
@@ -67,20 +67,26 @@ Tagged vlan 300
 ```
 create_ns  host7 0
 create_ns  host8 0
-create_tagged_dev_ns host7 192.168.3.7/24 300
-create_tagged_dev_ns  host8 192.168.3.8/24 300
+add_tagged_dev_ns host7 192.168.3.7/24 300
+add_tagged_dev_ns  host8 192.168.3.8/24 300
 ```
 Trunk link for host9
 ```
 create_ns  host9 0
-create_tagged_dev_ns host9 192.168.0.9/24 100
-create_tagged_dev_ns host9 192.168.2.9/24 200
-create_tagged_dev_ns host9 192.168.3.9/24 300
+add_tagged_dev_ns host9 192.168.0.9/24 100
+add_tagged_dev_ns host9 192.168.2.9/24 200
+add_tagged_dev_ns host9 192.168.3.9/24 300
 ```
 
 Then  connect all the hosts to the switch (br0)
 ```
-sudo ovs-vsctl add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 -- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4 -- add-port br0 veth-host5 -- set interface veth-host5 ofport_request=5   -- add-port br0 veth-host6 -- set interface veth-host6 ofport_request=6   -- add-port br0 veth-host7 -- set interface veth-host7 ofport_request=7  -- add-port br0 veth-host8 -- set interface veth-host8 ofport_request=8 -- add-port br0 veth-host9 -- set interface veth-host9 ofport_request=9   
+sudo ovs-vsctl add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 \
+-- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4 \
+-- add-port br0 veth-host5 -- set interface veth-host5 ofport_request=5 \
+-- add-port br0 veth-host6 -- set interface veth-host6 ofport_request=6 \
+-- add-port br0 veth-host7 -- set interface veth-host7 ofport_request=7 \
+-- add-port br0 veth-host8 -- set interface veth-host8 ofport_request=8 \
+-- add-port br0 veth-host9 -- set interface veth-host9 ofport_request=9  
 ```
 Now we have everything to start working with faucet through its configuration file. 
 Each time we need only to change the configuration file and restart faucet (or send it HUP signal to relaod the configuration file). 
@@ -130,9 +136,9 @@ dps:
                 name: "host9"
                 tagged_vlans: [vlan100,vlan200,vlan300]                
 ```
-Then restart faucet, and check how its log the new configuration in /var/log/faucet/faucet.log 
+Send SIGHUP singnal to reload the configuration file, and check how its log the new configuration in /var/log/faucet/faucet.log 
 ```
-sudo systemctl restart faucet
+sudo pkill -HUP -f faucet.faucet
 cat /var/log/faucet/faucet.log
 ```
 Let's do the following simple tests:
@@ -187,9 +193,9 @@ routers:
         vlans: [vlan100, vlan200] 
         
 ```
-Restart faucet to upload the configuration
+Send SIGHUP singnal to reload the configuration file. 
 ```
-sudo systemctl restart faucet
+sudo pkill -HUP -f faucet.faucet
 ```
 Configure vlan100 (native, tagged), vlan200 hosts gateway to be faucet IP as shown in the faucet.yaml file.
 ```
@@ -207,6 +213,7 @@ Then make some traffic between vlan100 and vlan200.
 as_ns host1 ping 192.168.2.5
 as_ns host3 ping 192.168.2.6
 ```
+It should works and traffic should go through. 
 
 ## Vlan ACL
 Let's apply ACL on a particular vlan (e.g. vlan300). We will block any ICMP packets on Vlan300. 
@@ -239,9 +246,13 @@ vlans:
         vid: 300
         acls_in: [block-ping] # Acl apply only on vlan300
 ```
-Restart faucet to upload the new configuration 
+Just before we reload the configuration file. Let's verify that pinging is working between hosts in vlan300.
 ```
-sudo systemctl restart faucet
+as_ns host7 ping 192.168.3.8
+```
+Now let's apply the configuratin, send SIGHUP singnal to reload the configuration file. 
+```
+sudo pkill -HUP -f faucet.faucet
 ```
 Now if you try to ping from host7 and host8, it will not work as it is specified by their vlan acl. 
 ```
