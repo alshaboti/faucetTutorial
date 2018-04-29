@@ -18,6 +18,9 @@ Native vlan200: host5 (192.168.2.5/24), host6 (192.168.2.6/24).
 Tagged vlan300: host7 (veth0.300: 192.168.3.7/24), host8 (veth0.300: 192.168.3.8/24). 
 Tagged vlan100, vlan200, vlan300: host9 (veth0.100: 192.168.0.9/24,veth0.200: 192.168.2.9/24, veth0.300: 192.168.3.9/24).
 
+Here is the structure of the demo setup in a visual way.
+![alt text](./faucetVLANTutorial.png "Demo network setup")
+
 *Note:* 
 Keep a pice of paper with the network layout and the hosts name, vlans, ip to simplify following the rest of the tutorial. 
 
