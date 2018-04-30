@@ -156,7 +156,8 @@ as_ns host3 ping 192.168.0.4
 as_ns host5 ping 192.168.2.6
 as_ns host7 ping 192.168.3.8
 ```
-All should work.
+All should work. 
+
 2. ping between hosts in same mixed vlan (i.e. native and tagged). In particular between host1 (native vlan100) to host3 (tagged vlan100).
 ```
 as_ns host1 ping 192.168.0.3
