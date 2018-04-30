@@ -4,21 +4,21 @@ Next we are going to introduce VLANs.
 
 ETA: ~30 mins.
 
-We will create the following network to demonstrate the following: 
-* Connection within the same native VLAN.
-* Connection between native and tagged VLAN. 
+In this tutorial we will look how to do the following tasks using faucet: 
+* Native VLAN.
+* Mixed VLANS (native and tagged). 
 * Routing between different VLANs.
 * Trunk link 
 * ACL for a particular VLAN. 
 
-We will use a demo network where a single switch br0 connects to:
+To demonistrat these tasks we will use a demo network where a single switch br0 connects to:
 - Native vlan100: host1 (192.168.0.1/24), host2 (192.168.0.2/24). 
 - Tagged vlan100: host3 (veth0.100: 192.168.0.3/24), host4 (veth0.100: 192.168.0.4/24). 
 - Native vlan200: host5 (192.168.2.5/24), host6 (192.168.2.6/24). 
 - Tagged vlan300: host7 (veth0.300: 192.168.3.7/24), host8 (veth0.300: 192.168.3.8/24). 
 - Tagged vlan100, vlan200, vlan300: host9 (veth0.100: 192.168.0.9/24,veth0.200: 192.168.2.9/24, veth0.300: 192.168.3.9/24).
 
-Here is the structure of the demo setup in a visual way.
+Here is the structure of the demo setup.
 ![alt text](./faucetVLANTutorial.png "Demo network setup")
 
 *Note:* 
