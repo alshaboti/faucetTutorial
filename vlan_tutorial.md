@@ -1,4 +1,5 @@
-Continues on from https://faucet.readthedocs.io/en/latest/tutorials.html
+Continues on from https://faucet.readthedocs.io/en/latest/tutorials.html. 
+
 Next we are going to introduce VLANs.
 
 ETA: ~30 mins.
@@ -21,7 +22,7 @@ Here is the structure of the demo setup in a visual way.
 ![alt text](./faucetVLANTutorial.png "Demo network setup")
 
 *Note:* 
-Keep a pice of paper with the network layout and the hosts name, vlans, ip to simplify following the rest of the tutorial. 
+Keep a pice of paper with the network layout and hosts' names, vlans, IPs to simplify following the rest of the tutorial. 
 
 
 Hosts that are connected to the tagged vlan port require a vlan interface. Use the following script to do that.  
