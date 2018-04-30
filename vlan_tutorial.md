@@ -10,13 +10,12 @@ We will create the following network to demonstrate the following:
 * Trunk link 
 * ACL for a particular VLAN. 
 
-We will use the following network setup:
-Single switch br0 connected to. 
-Native vlan100: host1 (192.168.0.1/24), host2 (192.168.0.2/24). 
-Tagged vlan100: host3 (veth0.100: 192.168.0.3/24), host4 (veth0.100: 192.168.0.4/24). 
-Native vlan200: host5 (192.168.2.5/24), host6 (192.168.2.6/24). 
-Tagged vlan300: host7 (veth0.300: 192.168.3.7/24), host8 (veth0.300: 192.168.3.8/24). 
-Tagged vlan100, vlan200, vlan300: host9 (veth0.100: 192.168.0.9/24,veth0.200: 192.168.2.9/24, veth0.300: 192.168.3.9/24).
+We will use a demo network where a single switch br0 connects to:
+- Native vlan100: host1 (192.168.0.1/24), host2 (192.168.0.2/24). 
+- Tagged vlan100: host3 (veth0.100: 192.168.0.3/24), host4 (veth0.100: 192.168.0.4/24). 
+- Native vlan200: host5 (192.168.2.5/24), host6 (192.168.2.6/24). 
+- Tagged vlan300: host7 (veth0.300: 192.168.3.7/24), host8 (veth0.300: 192.168.3.8/24). 
+- Tagged vlan100, vlan200, vlan300: host9 (veth0.100: 192.168.0.9/24,veth0.200: 192.168.2.9/24, veth0.300: 192.168.3.9/24).
 
 Here is the structure of the demo setup in a visual way.
 ![alt text](./faucetVLANTutorial.png "Demo network setup")
@@ -33,7 +32,7 @@ add_tagged_dev_ns () {
      VLAN=$3
      sudo ip netns exec $NETNS ip link add link veth0 name veth0.${VLAN} type vlan id $VLAN
      sudo ip netns exec $NETNS ip link set dev veth0.${VLAN} up
-     sudo ip netns exec $NETNS ifconfig veth0 0
+     sudo ip netns exec $NETNS ip addr flush dev veth0
      sudo ip netns exec $NETNS ip addr add dev veth0.${VLAN}  $IP
  }
  ```
@@ -48,9 +47,13 @@ clear_ns(){
 ### Network setup
 Let’s start. Keep host1, host2 on the native vlan 100 (office vlan) as in the first tutorial. 
 Then add the following hosts with the corresponding vlan:
+
 * In tagged vlan 100 add host3 and host4, and create a vlan interface on each of them. 
+
 * In native vlan 200 add host5 and host6 (no need to add any vlan interface for hosts connected to native vlan).
+
 * In tagged vlan 300 add host7 and host8,  and create a vlan interface on each of them. 
+
 * Add host9 to all previous vlans to work as NFV host . 
 Let's start..
 
