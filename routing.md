@@ -78,7 +78,7 @@ For this we will setup two Faucet switches with two hosts each
 
 h1 --- sw1 --- sw2 --- h3
 h2 ---/           \--- h4
-![static routing network diagram][static-routing.png]
+![static routing network diagram](./static-routing.png)
 Run the cleanup script to remove old namespaces and switches.
 ```bash
 cleanup
@@ -249,7 +249,7 @@ Each switch will therefore be controlled by a separate Faucet.
 BGP (and other routing) is provided by a NFV service, here we will use [BIRD](http://bird.network.cz/).
 Other applications such as ExaBGP & Quagga could be used.
 Our dataplane will end up looking like this:
-![BGP network diagram][bgp-routing.png]
+![BGP network diagram](bgp-routing.png)
 
 First we will remove the routing configuration and separate the two datapath configs into there own files.
 They should look like this.
