@@ -74,8 +74,7 @@ For this we will setup two Faucet switches with two hosts each
 
 h1 --- sw1 --- sw2 --- h3
 h2 ---/           \--- h4
-TODO include picture with IP addresses etc...
-
+![static routing network diagram][static-routing.png]
 Run the cleanup script to remove old namespaces and switches.
 ```bash
 cleanup
@@ -242,10 +241,11 @@ PING 10.0.1.3 (10.0.1.3) 56(84) bytes of data.
 For this section we are going to change our static routes from above into BGP routes.
 To do this each switch will become it's own Autonomous System (AS).
 Each switch will therefore be controlled by a separate Faucet.
-#TODO insert picture.
 
 BGP (and other routing) is provided by a NFV service, here we will use [BIRD](http://bird.network.cz/).
 Other applications such as ExaBGP & Quagga could be used.
+Our dataplane will end up looking like this:
+![BGP network diagram][bgp-routing.png]
 
 First we will remove the routing configuration and separate the two datapath configs into there own files.
 They should look like this.
