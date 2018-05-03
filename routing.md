@@ -14,14 +14,14 @@ See there for how to install and setup Faucet and OVS.
 Let's start with a single switch connected to two hosts in two different vlans.
 ![vlan routing diagram](vlan-routing.png)
 ```bash
-create_ns host1 10.0.0.254/24
-create_ns host2 10.0.1.254/24
+create_ns host1 10.0.0.1/24
+create_ns host2 10.0.1.1/24
 sudo ovs-vsctl add-br br1 \
 -- set bridge br1 other-config:datapath-id=0000000000000001 \
 -- set bridge br1 other-config:disable-in-band=true \
 -- set bridge br1 fail_mode=secure \
--- add-port br1 veth-host1 -- set interface veth-host1 ofport_request=2 \
--- add-port br1 veth-host2 -- set interface veth-host2 ofport_request=3 \
+-- add-port br1 veth-host1 -- set interface veth-host1 ofport_request=1 \
+-- add-port br1 veth-host2 -- set interface veth-host2 ofport_request=2 \
 -- set-controller br1 tcp:127.0.0.1:6653 tcp:127.0.0.1:6654
 ```
 
@@ -63,12 +63,12 @@ sudo pkill -HUP -f faucet.faucet
 ```
 Add the default route to the 'faucet_vips' as above.
 ```bash
-as_ns host1 ip route add default via 10.0.0.254 veth0
-as_ns host2 ip route add default via 10.0.1.254 veth0
+as_ns host1 ip route add default via 10.0.0.254 dev veth0
+as_ns host2 ip route add default via 10.0.1.254 dev veth0
 ```
 Then make some traffic between our two hosts.
 ```bash
-as_ns host1 ping 10.0.1.2
+as_ns host1 ping 10.0.1.1
 ```
 It should work and traffic should go through.
 
@@ -254,7 +254,7 @@ Our dataplane will end up looking like this:
 First we will remove the routing configuration and separate the two datapath configs into there own files.
 They should look like this.
 
-sw1-faucet.yaml
+/home/ubuntu/sw1-faucet.yaml
 ```yaml
 vlans:
     br1-hosts:
@@ -289,7 +289,7 @@ dps:
                 native_vlan: br1-hosts
 ```
 
-sw2-faucet.yaml
+/home/ubuntu/sw2-faucet.yaml
 ```yaml
 vlans:
     br2-peer:
