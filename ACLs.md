@@ -9,17 +9,18 @@ unless stated tcpdump will be used with ping and it should only be nescassry to 
 
 
 First we will add two new hosts to our network:
-```
+```bash
 create_ns host3 192.168.0.3/24
 create_ns host4 192.168.0.4/24
 ```
 and connect them to br0
-```sudo ovs-vsctl add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 -- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4
+```bash
+sudo ovs-vsctl add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 -- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4
 ```
 
 The configurtaion below will block ICMP on traffic coming in on port 3, and allow everything else.
 Add this to /etc/faucet/faucet.yaml below the 'dps'.
-```
+```yaml
             3:
                 name: "host3"
                 native_vlan: office
@@ -69,19 +70,18 @@ The 'allow' action is a boolean, if it's True allow the packet to continue throu
 Now tell Faucet to reload its configuration, this can be done be restarting the application.
 But a better way is to send Faucet a SIGHUP signal.
 
-
-```
+```bash
 check_faucet_config /etc/faucet/faucet.yaml
 ```
 
-```
+```bash
 pkill -HUP -f faucet.faucet
 ```
 
 Now pings to/from host3 should fail, but the other three hosts should be fine.
 
 Test this with
-```
+```bash
 as_ns host1 ping 192.168.0.3
 as_ns host1 ping 192.168.0.4
 ```
@@ -95,7 +95,7 @@ To do this Faucet provides two ACL actions: mirror & output.
 The mirror action copies the packet, before any modifications, to the specified port (NOTE: mirroring is done in input direction only).
 
 Let's add the mirror action to our block-ping ACL /etc/faucet/faucet.yaml
-```
+```yaml
 ...
 block-ping:
     - rule:
@@ -113,23 +113,23 @@ block-ping:
 ```
 
 And again send the sighup signal to Faucet
-```
+```bash
 pkill -HUP -f faucet.faucet
 ```
 
 To check this we will ping from host1 to host3, while performing a tcpdump on host4 who should receive the ping replies.
 It is a good idea to run each from a different terminal (screen, tmux, ...)
 
-```
+```bash
 as_ns host1 ping 192.168.0.3
 ```
 Ping should have 100% packet loss.
 
-```
+```bash
 as_ns host4 tcpdump -e -n -i veth0
 ```
-```
-ubuntu@ubuntu:~$ as_ns host4 tcpdump -e -n -i veth0
+```bash
+$ as_ns host4 tcpdump -e -n -i veth0
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 13:24:36.848331 2e:d4:1a:ca:54:4b > 06:5f:14:fc:47:02, ethertype IPv4 (0x0800), length 98: 192.168.0.3 > 192.168.0.1: ICMP echo reply, id 23660, seq 16, length 64
@@ -142,7 +142,7 @@ listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 
 There is also the 'output' action which can be used to acheive the same thing.
 
-```
+```yaml
 block-ping:
     - rule:
         dl_type: 0x800
@@ -168,7 +168,7 @@ It can be used in conjunction with the other actions, e.g. output directly and b
 Let's create a new ACL for host2's port that will change the MAC source address.
 
 /etc/faucet/faucet.yaml
-```
+```yaml
 dps:
     sw1:
         ...
@@ -194,16 +194,16 @@ acls:
 again reload Faucet.
 
 Start tcpdump on host1
-```
+```bash
 as_ns host1 tcpdump -e -n -i veth0
 ```
 ping host1 from host2
-```
+```bash
 as_ns host2 ping 192.168.0.1
 ```
 Here we can see ICMP echo requests are coming from the MAC address "00:00:00:00:00:02" that we set in our output ACL.
 (The reply is destined to the actual MAC address of host2 thanks to ARP) [TODO i think].
-```
+```bash
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 13:53:41.248235 00:00:00:00:00:02 > 06:5f:14:fc:47:02, ethertype IPv4 (0x0800), length 98: 192.168.0.2 > 192.168.0.1: ICMP echo request, id 23711, seq 1, length 64
@@ -217,11 +217,10 @@ listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 ```
 
 
-
 With the output action we could also use it to mirror traffic to a NFV server (like our fake mirror output action above), and use a VLAN tag to identify what port the traffic originated on on the switch.
 To do this we will use both the 'port' & 'vlan_vid' output fields.
 
-```
+```yaml
 block-ping:
     - rule:
         dl_type: 0x800
@@ -243,7 +242,8 @@ block-ping:
 
 Again reload Faucet, start a tcpdump on host4, and ping from host1 to host3.
 Ping should still not be allowed through and the TCPDump output should be similar to below (Note the 802.1Q tag and vlan 3):
-```
+```bash
+$ as_ns host4 tcpdump -e -n -i veth0
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 14:14:15.285329 2e:d4:1a:ca:54:4b > 06:5f:14:fc:47:02, ethertype 802.1Q (0x8100), length 102: vlan 3, p 0, ethertype IPv4, 192.168.0.3 > 192.168.0.1: ICMP echo reply, id 23747, seq 1, length 64
