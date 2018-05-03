@@ -1,15 +1,18 @@
-#TODO maybe setup everything and config except the routing stuff first. and show cannot ping between the two subnets.
-Up next we have Routing.
+#TODO maybe setup everything and config except the routing stuff first. and show cannot ping between the two subnets?
+
+This tutorial will cover routing with Faucet.
 
 There are three types of routing we can use.
 - Inter VLAN routing
 - Static routing
 - BGP via an external application (Quagga, Bird, EXABGP, ...)
 
+This tutorial expands on [installing Faucet for the first time](https://faucet.readthedocs.io/en/latest/tutorials.html).
+See there for how to install and setup Faucet and OVS.
 
 ## Routing between vlans
-Let's try to make a route between hosts in vlan100 and vlan200.
 Let's start with a single switch connected to two hosts in two different vlans.
+![vlan routing diagram](vlan-routing.png)
 ```bash
 create_ns host1 10.0.0.254/24
 create_ns host2 10.0.1.254/24
@@ -24,7 +27,8 @@ sudo ovs-vsctl add-br br1 \
 
 
 To allow traffic between vlans we use a router, and assign each VLAN at least one IP address (gateway IP address).
-Lets add a router and vlans section like so.
+Lets add the routers and vlans section like so.
+
 /etc/faucet/faucet.yaml
 ```yaml
 vlans:
@@ -53,7 +57,7 @@ dps:
                 description: "host2 network namespace"
                 native_vlan: vlan200
 ```
-Send SIGHUP singnal to reload the configuration file.
+Send SIGHUP signal to reload the configuration file.
 ```
 sudo pkill -HUP -f faucet.faucet
 ```
