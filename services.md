@@ -23,7 +23,8 @@ create_ns host5 0              # normal host
 Then create an open vswtich and connect all hosts to it. 
 ```
 sudo ovs-vsctl add-br br0 -- set bridge br0 other-config:datapath-id=0000000000000001 \
-                          -- set bridge br0 other-config:disable-in-band=true -- set bridge br0 fail_mode=secure \
+                          -- set bridge br0 other-config:disable-in-band=true \
+                          -- set bridge br0 fail_mode=secure \
                           -- add-port br0 veth-host1 -- set interface veth-host1 ofport_request=1 \
                           -- add-port br0 veth-host2 -- set interface veth-host2 ofport_request=2 \
                           -- add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 \
@@ -37,7 +38,8 @@ We will run install dnsmasq and run DHCP service on host2
 ```
 sudo apt-get install dnsmasq
 
-sudo ip netns exec host2 dnsmasq --no-ping -p 0 -k  --dhcp-range=192.168.0.10,192.168.0.20  \
+sudo ip netns exec host2 dnsmasq --no-ping -p 0 -k  \
+                                 --dhcp-range=192.168.0.10,192.168.0.20  \
                                  --dhcp-option=option:router,192.168.0.3 -O option:dns-server,8.8.8.8  \
                                  -I lo -z -l /tmp/nfv-dhcp.leases -8 /tmp/nfv.dhcp.log -i veth0  --conf-file= &               
 ```
