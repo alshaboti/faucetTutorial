@@ -120,8 +120,87 @@ jemalloc:          false
 host1 will run BRO and host2 will run dhcp both have static ip 
 192.168.0.1/24 and 192.168.0.2/24
 
-sudo ip netns exec host2 dnsmasq --no-ping -p 0 -k  --dhcp-range=192.168.0.10,192.168.0.20  -O option:dns-server,8.8.8.8  -I lo -z -l /tmp/nfv-dhcp.leases -8 /tmp/nfv.dhcp.log -i veth0  --conf-file=
+create_ns host1 192.168.0.1/24 # BRO
+create_ns host2 192.168.0.2/24 # DHCP server
+create_ns host3 192.168.0.3/24 # Gateway
 
- as_ns host3 dhclient veth0
- as_ns host4 dhclient veth0
+create_ns host4 0
+create_ns host5 0
+
+
+sudo ovs-vsctl add-br br0 -- set bridge br0 other-config:datapath-id=0000000000000001 \
+                          -- set bridge br0 other-config:disable-in-band=true -- set bridge br0 fail_mode=secure \
+                          -- add-port br0 veth-host1 -- set interface veth-host1 ofport_request=1 \
+                          -- add-port br0 veth-host2 -- set interface veth-host2 ofport_request=2 \
+                          -- add-port br0 veth-host3 -- set interface veth-host3 ofport_request=3 \
+                          -- add-port br0 veth-host4 -- set interface veth-host4 ofport_request=4 \
+                          -- add-port br0 veth-host5 -- set interface veth-host5 ofport_request=5 \
+                          -- set-controller br0 tcp:127.0.0.1:6653 tcp:127.0.0.1:6654
+
+
+
+sudo ip netns exec host2 dnsmasq --no-ping -p 0 -k  --dhcp-range=192.168.0.10,192.168.0.20  \
+                                 --dhcp-option=option:router,192.168.0.3 -O option:dns-server,8.8.8.8  \
+                                 -I lo -z -l /tmp/nfv-dhcp.leases -8 /tmp/nfv.dhcp.log -i veth0  --conf-file= &
+
+
+/etc/faucet/faucet.yaml
+```
+vlans:
+    BROvlan:
+        vid: 200
+        description: "bro vlan"
+
+    office:
+        vid: 100
+        description: "office network"
+#        acls_in: [mirror-acl]
+
+acls:
+    mirror-acl:
+        - rule:
+            actions:
+                allow: true
+                mirror: 1
+
+dps:
+    sw1:
+        dp_id: 0x1
+        hardware: "Open vSwitch"
+        interfaces:
+            1:
+                name: "host1"
+                description: "BRO network namespace"
+                native_vlan: BROvlan
+            2:
+                name: "host2"
+                description: "DHCP server  network namespace"
+                native_vlan: office
+            3:
+                name: "host3"
+                description: "gateway network namespace"
+                native_vlan: office
+            4:
+                name: "host4"
+                description: "host4 network namespace"
+                native_vlan: office
+            5:
+                name: "host5"
+                description: "host5 network namespace"
+                native_vlan: office
+```
+now restart faucet
+```
+sudo systemctl restart faucet
+```
+
+as_ns host4 dhclient veth0
+as_ns host5 dhclient veth0
+
+You can check /tmp/nfv-dhcp.leases and /tmp/nfv.dhcp.log to find what ip assinged to host4 and host5. 
+Alternatively, 
+```
+as_ns host4 ip add show
+as_ns host5 ip add show
+```
 
