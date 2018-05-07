@@ -95,7 +95,7 @@ as_ns host4 ping <ip of host5>
 It should work fine. 
 
 # Gateway 
-In this section we will configure host2 as a gateway (NAT)to provide internet connection for our network. 
+In this section we will configure host3 as a gateway (NAT)to provide internet connection for our network. 
 ```
 NS=host3        # gateway host namespace 
 TO_DEF=to_def   # to the internet
@@ -139,120 +139,105 @@ as_ns host5 ping www.google.com
 ```
 
 # BRO IDS
-prerequisits
+## BRO installation
+We need first to install bro. We will use the binary backage version 2.5.3 for this test. 
+```
+# install the prerequisits
 sudo apt-get install cmake make gcc g++ flex bison libpcap-dev libssl-dev python-dev swig zlib1g-dev
-
-binary package
-wget https://www.bro.org/downloads/bro-2.5.3.tar.gz
+# install the binary package
+wget https://www.bro.org/downloads/bro-2.5.3.tar.gz -P $HOME
 tar -xf bro-2.5.3.tar.gz 
 cd bro-2.5.3/
+# configure, make and install 
 ./configure
 make
 sudo make install
-
+```
+Add bro location to the PATH directory and export PREFIX
+```
 export PATH=/usr/local/bro/bin:$PATH
 export PREFIX=/usr/local/bro
-
+```
+## Configure BRO
 In $PREFIX/etc/node.cfg, set veth0 as the interface to monitor 
-
+```
 [bro]
 type=standalone
 host=localhost
 interface=veth0
-
+```
 Comment mailto in $PREFIX/etc/broctl.cfg
-
+```
+# Recipient address for all emails sent out by Bro and BroControl.
+# MailTo = root@localhost
+```
+## Run bro in host2
+Let's now run bro in host2 namespace. 
+```
 cd /usr/local/bro/bin
 as_ns host1 ./broctl
-
+```
 Since this is the first-time use of the shell, perform an initial installation of the BroControl configuration:
+```
 [BroControl] > install
-
+```
 Then start bro instant 
+```
 [BroControl] > start
-
+```
 Check bro status 
+```
 [BroControl] > status
 Name         Type       Host          Status    Pid    Started
 bro          standalone localhost     running   15052  07 May 09:03:59
+```
+Now let's put BRO in different vlan and mirror the office vlan traffic to BRO. 
 
-Now let's mirror office vlan traffic to BRO. We will use vlan acls. 
+We will use vlan acls (more about acl and vlan check vlan and acl tutorials). 
 
+```
 vlans:
     BROvlan:
         vid: 200
         description: "bro vlan"
-
     office:
         vid: 100
         description: "office network"
         acls_in: [mirror-acl]
-
 acls:
     mirror-acl:
         - rule:
             actions:
                 allow: true
-                mirror: 1
-
+                mirror: 1 
 dps:
     sw1:
         dp_id: 0x1
         hardware: "Open vSwitch"
         interfaces:
             1:
-                name: "BRO"
+                name: "host1"
                 description: "BRO network namespace"
                 native_vlan: BROvlan
             2:
                 name: "host2"
-                description: "host2 network namespace"
+                description: "DHCP server  network namespace"
                 native_vlan: office
             3:
                 name: "host3"
-                description: "host3 network namespace"
+                description: "gateway network namespace"
                 native_vlan: office
- 
-
-Relaod  faucet configuration file
-
-
---------------
-=================|  Broccoli Build Summary  |===================
-
-Install prefix:    /usr/local/bro
-Library prefix:    /usr/local/bro/lib
-Debug mode:        false
-Shared libs:       true
-Static libs:       true
-
-Config file:       /usr/local/bro/etc/broccoli.conf
-Packet support:    true
-
-CC:                /usr/bin/cc
-CFLAGS:             -Wall -Wno-unused -O2 -g -DNDEBUG
-CPP:               /usr/bin/cc
-----------
-====================|  Bro Build Summary  |=====================
-
-Install prefix:    /usr/local/bro
-Bro Script Path:   /usr/local/bro/share/bro
-Debug mode:        false
-
-CC:                /usr/bin/cc
-CFLAGS:             -Wall -Wno-unused -O2 -g -DNDEBUG
-CXX:               /usr/bin/c++
-CXXFLAGS:           -Wall -Wno-unused -std=c++11 -O2 -g -DNDEBUG
-CPP:               /usr/bin/c++
-
-Broker:            false
-Broker Python:     false
-Broccoli:          true
-Broctl:            true
-Aux. Tools:        true
-
-GeoIP:             false
-gperftools found:  false
-        tcmalloc:  false
-       debugging:  false
-jemalloc:          false
+            4:
+                name: "host4"
+                description: "host4 network namespace"
+                native_vlan: office
+            5:
+                name: "host5"
+                description: "host5 network namespace"
+                native_vlan: office
+```
+As usual reload faucet configuration file. 
+```
+sudo systemctl restart faucet
+```
+To check BRO log files go to $PREFIX/logs. 
