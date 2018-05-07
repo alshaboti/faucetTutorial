@@ -204,3 +204,43 @@ as_ns host4 ip add show
 as_ns host5 ip add show
 ```
 
+
+# Gateway 
+We will configure host3 to work as a gateway (NAT)to provide internet connection through the host VM. 
+```
+NS=host3        # gateway host namespace 
+TO_DEF=to_def   # to the internet
+TO_NS=to_${NS}  # to gw (host3) 
+OUT_INTF=enp0s3 # host machine interface for internet connection. 
+
+# enable forwarding in the hosted machine and in the host3 namespace. 
+sudo sysctl net.ipv4.ip_forward=1
+sudo ip netns exec ${NS} sysctl net.ipv4.ip_forward=1
+
+# create veth pair
+sudo ip link add name ${TO_NS} type veth peer name ${TO_DEF} netns ${NS}
+# configure interfaces and routes
+sudo ip addr add 192.168.100.1/30 dev ${TO_NS}
+sudo ip link set ${TO_NS} up
+# sudo ip route add 192.168.100.0/30 dev ${TO_NS}
+sudo ip netns exec ${NS} ip addr add 192.168.100.2/30 dev ${TO_DEF}
+sudo ip netns exec ${NS} ip link set ${TO_DEF} up
+sudo ip netns exec ${NS} ip route add default via 192.168.100.1
+# NAT in ${NS} 
+sudo ip netns exec ${NS} iptables -t nat -F
+sudo ip netns exec ${NS} iptables -t nat -A POSTROUTING -o ${TO_DEF} -j MASQUERADE
+# NAT in default
+sudo iptables -P FORWARD DROP
+sudo iptables -F FORWARD
+# Assuming the host does not have other NAT rules.
+sudo iptables -t nat -F
+sudo iptables -t nat -A POSTROUTING -s 192.168.100.0/30 -o ${OUT_INTF} -j MASQUERADE
+sudo iptables -A FORWARD -i ${OUT_INTF} -o ${TO_NS} -j ACCEPT
+sudo iptables -A FORWARD -i ${TO_NS} -o ${OUT_INTF} -j ACCEPT
+```
+
+Now try to ping google from host3 or host4, it should work as the gateway is now configured. 
+```
+as_ns host3 ping www.google.com
+as_ns host4 ping www.google.com
+```
