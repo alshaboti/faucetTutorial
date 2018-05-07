@@ -116,4 +116,12 @@ gperftools found:  false
         tcmalloc:  false
        debugging:  false
 jemalloc:          false
-                
+
+host1 will run BRO and host2 will run dhcp both have static ip 
+192.168.0.1/24 and 192.168.0.2/24
+
+sudo ip netns exec host2 dnsmasq --no-ping -p 0 -k  --dhcp-range=192.168.0.2,192.168.0.10  -O option:dns-server,8.8.8.8  -I lo -z -l /tmp/dhcp-nfv.leases -8 /tmp/nfv.dhcp.log -i veth0  --conf-file=
+
+ as_ns host3 dhclient veth0
+ as_ns host4 dhclient veth0
+
