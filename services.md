@@ -242,4 +242,4 @@ As usual reload faucet configuration file.
 ```
 sudo systemctl restart faucet
 ```
-To check BRO log files go to $PREFIX/logs. 
+To check BRO log files go to *$PREFIX/logs*. 
